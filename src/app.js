@@ -3,6 +3,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 const authRoutes = require('./routes/authRoutes');
+const patientRoutes = require('./routes/patientRoutes');
 
 
 const app = express();
@@ -12,6 +13,8 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 app.use('/api', authRoutes);
+app.use('/api/patients', patientRoutes);
+
 app.use(notFoundHandler);
 app.use(errorHandler);
 
