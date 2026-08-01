@@ -4,7 +4,9 @@ const morgan = require('morgan');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler');
 const authRoutes = require('./routes/authRoutes');
 const patientRoutes = require('./routes/patientRoutes');
-
+const polyclinicRoutes = require('./routes/polyclinicRoutes');
+const doctorRoutes = require('./routes/doctorRoutes');
+const registrationRoutes = require('./routes/registrationRoutes');
 
 const app = express();
 
@@ -14,6 +16,9 @@ app.use(morgan('dev'));
 
 app.use('/api', authRoutes);
 app.use('/api/patients', patientRoutes);
+app.use('/api/polyclinics', polyclinicRoutes);
+app.use('/api/doctors', doctorRoutes);
+app.use('/api/registrations', registrationRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
