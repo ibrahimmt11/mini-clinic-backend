@@ -1,9 +1,14 @@
-const { MedicalRecord, Prescription, Patient, Doctor, Registration, sequelize } = require('../models');
-const { success } = require('../utils/response');
-const ApiError = require('../utils/ApiError');
+const {
+  MedicalRecord,
+  Prescription,
+  Patient,
+  Doctor,
+  Registration,
+  sequelize,
+} = require("../models");
+const { success } = require("../utils/response");
+const ApiError = require("../utils/ApiError");
 
-// POST /medical-records
-// Body bisa sekaligus include array prescriptions
 async function create(req, res, next) {
   const t = await sequelize.transaction();
   try {
@@ -19,24 +24,31 @@ async function create(req, res, next) {
       diagnosis,
       treatmentPlan,
       medicalAction,
-      prescriptions, // optional array: [{ medicineName, dosage, instructions }]
+      prescriptions,
     } = req.body;
 
     if (!registrationId || !patientId || !doctorId) {
-      throw new ApiError(422, 'Validation Error', {
-        registrationId: !registrationId ? 'Registration wajib diisi' : undefined,
-        patientId: !patientId ? 'Pasien wajib diisi' : undefined,
-        doctorId: !doctorId ? 'Dokter wajib diisi' : undefined,
+      throw new ApiError(422, "Validation Error", {
+        registrationId: !registrationId
+          ? "Registration wajib diisi"
+          : undefined,
+        patientId: !patientId ? "Pasien wajib diisi" : undefined,
+        doctorId: !doctorId ? "Dokter wajib diisi" : undefined,
       });
     }
 
-    const registration = await Registration.findByPk(registrationId, { transaction: t });
-    if (!registration) throw new ApiError(404, 'Pendaftaran tidak ditemukan');
+    const registration = await Registration.findByPk(registrationId, {
+      transaction: t,
+    });
+    if (!registration) throw new ApiError(404, "Pendaftaran tidak ditemukan");
 
-    const existing = await MedicalRecord.findOne({ where: { registrationId }, transaction: t });
+    const existing = await MedicalRecord.findOne({
+      where: { registrationId },
+      transaction: t,
+    });
     if (existing) {
-      throw new ApiError(422, 'Validation Error', {
-        registrationId: 'Rekam medis untuk pendaftaran ini sudah ada',
+      throw new ApiError(422, "Validation Error", {
+        registrationId: "Rekam medis untuk pendaftaran ini sudah ada",
       });
     }
 
@@ -54,7 +66,7 @@ async function create(req, res, next) {
         treatmentPlan,
         medicalAction,
       },
-      { transaction: t }
+      { transaction: t },
     );
 
     if (Array.isArray(prescriptions) && prescriptions.length > 0) {
@@ -67,16 +79,15 @@ async function create(req, res, next) {
       await Prescription.bulkCreate(prescriptionData, { transaction: t });
     }
 
-    // Setelah pemeriksaan dicatat, tandai registration & queue selesai
-    await registration.update({ status: 'Selesai' }, { transaction: t });
+    await registration.update({ status: "Selesai" }, { transaction: t });
 
     await t.commit();
 
     const result = await MedicalRecord.findByPk(medicalRecord.id, {
-      include: [{ model: Prescription, as: 'prescriptions' }],
+      include: [{ model: Prescription, as: "prescriptions" }],
     });
 
-    return success(res, result, 'Rekam medis berhasil disimpan', 201);
+    return success(res, result, "Rekam medis berhasil disimpan", 201);
   } catch (err) {
     await t.rollback();
     next(err);
@@ -89,16 +100,16 @@ async function getByPatient(req, res, next) {
     const { patientId } = req.params;
 
     const patient = await Patient.findByPk(patientId);
-    if (!patient) throw new ApiError(404, 'Pasien tidak ditemukan');
+    if (!patient) throw new ApiError(404, "Pasien tidak ditemukan");
 
     const records = await MedicalRecord.findAll({
       where: { patientId },
       include: [
-        { model: Doctor, as: 'doctor' },
-        { model: Prescription, as: 'prescriptions' },
-        { model: Registration, as: 'registration' },
+        { model: Doctor, as: "doctor" },
+        { model: Prescription, as: "prescriptions" },
+        { model: Registration, as: "registration" },
       ],
-      order: [['createdAt', 'DESC']],
+      order: [["createdAt", "DESC"]],
     });
 
     return success(res, records);
