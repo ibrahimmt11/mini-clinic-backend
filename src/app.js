@@ -8,6 +8,8 @@ const polyclinicRoutes = require('./routes/polyclinicRoutes');
 const doctorRoutes = require('./routes/doctorRoutes');
 const registrationRoutes = require('./routes/registrationRoutes');
 const queueRoutes = require('./routes/queueRoutes');
+const medicalRecordRoutes = require('./routes/medicalRecordRoutes');
+const prescriptionRoutes = require('./routes/prescriptionRoutes');
 
 const app = express();
 
@@ -21,6 +23,8 @@ app.use('/api/polyclinics', polyclinicRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/registrations', registrationRoutes);
 app.use('/api/queues', queueRoutes);
+app.use('/api/medical-records', medicalRecordRoutes);
+app.use('/api/prescriptions', prescriptionRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
