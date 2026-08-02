@@ -1,20 +1,27 @@
-const { Registration, Queue, Patient, Doctor, Polyclinic, sequelize } = require('../models');
-const { success } = require('../utils/response');
-const ApiError = require('../utils/ApiError');
+const {
+  Registration,
+  Queue,
+  Patient,
+  Doctor,
+  Polyclinic,
+  sequelize,
+} = require("../models");
+const { success } = require("../utils/response");
+const ApiError = require("../utils/ApiError");
 
 async function generateQueueNumber(queueDate) {
   const lastQueue = await Queue.findOne({
     where: { queueDate },
-    order: [['queueNumber', 'DESC']],
+    order: [["queueNumber", "DESC"]],
   });
 
   let nextNumber = 1;
   if (lastQueue) {
-    const lastNumber = parseInt(lastQueue.queueNumber.replace('A', ''), 10);
+    const lastNumber = parseInt(lastQueue.queueNumber.replace("A", ""), 10);
     nextNumber = lastNumber + 1;
   }
 
-  return `A${String(nextNumber).padStart(3, '0')}`;
+  return `A${String(nextNumber).padStart(3, "0")}`;
 }
 
 async function getAll(req, res, next) {
@@ -24,15 +31,23 @@ async function getAll(req, res, next) {
     if (status) where.status = status;
     if (visitDate) where.visitDate = visitDate;
 
+    // Kalau yang login adalah Dokter, filter hanya registration miliknya sendiri
+    if (req.user.role === "Dokter") {
+      const doctor = await Doctor.findOne({ where: { userId: req.user.id } });
+      if (doctor) {
+        where.doctorId = doctor.id;
+      }
+    }
+
     const registrations = await Registration.findAll({
       where,
       include: [
-        { model: Patient, as: 'patient' },
-        { model: Doctor, as: 'doctor' },
-        { model: Polyclinic, as: 'polyclinic' },
-        { model: Queue, as: 'queue' },
+        { model: Patient, as: "patient" },
+        { model: Doctor, as: "doctor" },
+        { model: Polyclinic, as: "polyclinic" },
+        { model: Queue, as: "queue" },
       ],
-      order: [['createdAt', 'DESC']],
+      order: [["createdAt", "DESC"]],
     });
 
     return success(res, registrations);
@@ -44,15 +59,28 @@ async function getAll(req, res, next) {
 async function create(req, res, next) {
   const t = await sequelize.transaction();
   try {
-    const { patientId, doctorId, polyclinicId, visitDate, paymentType, initialComplaint } = req.body;
+    const {
+      patientId,
+      doctorId,
+      polyclinicId,
+      visitDate,
+      paymentType,
+      initialComplaint,
+    } = req.body;
 
-    if (!patientId || !doctorId || !polyclinicId || !visitDate || !paymentType) {
-      throw new ApiError(422, 'Validation Error', {
-        patientId: !patientId ? 'Pasien wajib dipilih' : undefined,
-        doctorId: !doctorId ? 'Dokter wajib dipilih' : undefined,
-        polyclinicId: !polyclinicId ? 'Poli wajib dipilih' : undefined,
-        visitDate: !visitDate ? 'Tanggal kunjungan wajib diisi' : undefined,
-        paymentType: !paymentType ? 'Jenis pembayaran wajib diisi' : undefined,
+    if (
+      !patientId ||
+      !doctorId ||
+      !polyclinicId ||
+      !visitDate ||
+      !paymentType
+    ) {
+      throw new ApiError(422, "Validation Error", {
+        patientId: !patientId ? "Pasien wajib dipilih" : undefined,
+        doctorId: !doctorId ? "Dokter wajib dipilih" : undefined,
+        polyclinicId: !polyclinicId ? "Poli wajib dipilih" : undefined,
+        visitDate: !visitDate ? "Tanggal kunjungan wajib diisi" : undefined,
+        paymentType: !paymentType ? "Jenis pembayaran wajib diisi" : undefined,
       });
     }
 
@@ -64,9 +92,9 @@ async function create(req, res, next) {
         visitDate,
         paymentType,
         initialComplaint,
-        status: 'Menunggu',
+        status: "Menunggu",
       },
-      { transaction: t }
+      { transaction: t },
     );
 
     const queueNumber = await generateQueueNumber(visitDate);
@@ -76,9 +104,9 @@ async function create(req, res, next) {
         registrationId: registration.id,
         queueNumber,
         queueDate: visitDate,
-        status: 'Menunggu',
+        status: "Menunggu",
       },
-      { transaction: t }
+      { transaction: t },
     );
 
     await t.commit();
@@ -86,8 +114,8 @@ async function create(req, res, next) {
     return success(
       res,
       { registration, queue },
-      'Pendaftaran berhasil, nomor antrean digenerate',
-      201
+      "Pendaftaran berhasil, nomor antrean digenerate",
+      201,
     );
   } catch (err) {
     await t.rollback();
@@ -98,19 +126,19 @@ async function create(req, res, next) {
 async function updateStatus(req, res, next) {
   try {
     const { status } = req.body;
-    const validStatuses = ['Menunggu', 'Check In', 'Pemeriksaan', 'Selesai'];
+    const validStatuses = ["Menunggu", "Check In", "Pemeriksaan", "Selesai"];
 
     if (!status || !validStatuses.includes(status)) {
-      throw new ApiError(422, 'Validation Error', {
-        status: `Status harus salah satu dari: ${validStatuses.join(', ')}`,
+      throw new ApiError(422, "Validation Error", {
+        status: `Status harus salah satu dari: ${validStatuses.join(", ")}`,
       });
     }
 
     const registration = await Registration.findByPk(req.params.id);
-    if (!registration) throw new ApiError(404, 'Pendaftaran tidak ditemukan');
+    if (!registration) throw new ApiError(404, "Pendaftaran tidak ditemukan");
 
     await registration.update({ status });
-    return success(res, registration, 'Status pendaftaran berhasil diperbarui');
+    return success(res, registration, "Status pendaftaran berhasil diperbarui");
   } catch (err) {
     next(err);
   }
